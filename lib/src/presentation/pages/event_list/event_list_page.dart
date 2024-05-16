@@ -101,6 +101,31 @@ class _EventListPageState extends State<EventListPage> {
     }
   }
 
+  Future<bool> updateEvent(String id, String name, String date) async {
+    try {
+      final pool = MySQLConnectionPool(
+        host: "127.0.0.1",
+        port: 3306,
+        userName: "ahmad",
+        password: "qwerty123456",
+        databaseName: "simple_tools", // optional
+        maxConnections: 10,
+      );
+
+      final result = await pool.execute(
+          "UPDATE countdown_event SET name = :name, date = :date WHERE id = :id",
+          {"name": name, "date": date, "id": id});
+      bool success = false;
+      if (result.affectedRows.toInt() > 0) {
+        success = true;
+      }
+      await pool.close();
+      return success;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -174,13 +199,60 @@ class _EventListPageState extends State<EventListPage> {
                         if (direction == DismissDirection.startToEnd) {
                           await removeEvent(data["id"]);
                           setState(() {});
-                        } else if (direction == DismissDirection.endToStart) {
-                          //_openQuran(data["nomor"], data["ayat"]);
-                        }
+                        } else if (direction == DismissDirection.endToStart) {}
                       },
                       child: InkWell(
-                        onTap: () {
-                          //
+                        onTap: () async {
+                          dateTimeTextFieldController
+                              .textEditingController?.text = data["date"];
+                          await showConfirmationAndProcessingDialog<
+                              Map<String, String>, bool>(
+                            context,
+                            "Edit Event",
+                            "",
+                            extraBodyBuilder:
+                                (context, request, processState, stateSetter) {
+                              return Column(
+                                children: [
+                                  LabeledTextField(
+                                    initialValue: data["name"],
+                                    label: "Name",
+                                    onChanged: (value) {
+                                      request?["name"] = value;
+                                    },
+                                  ),
+                                  const SpaceHeight(),
+                                  DateTimeTextField(
+                                    controller: dateTimeTextFieldController,
+                                    todayAsLastDate: false,
+                                  )
+                                ],
+                              );
+                            },
+                            getRequest: (context) {
+                              return {};
+                            },
+                            actionFunction: (context, request) {
+                              return updateEvent(
+                                  data["id"],
+                                  request!["name"]!,
+                                  dateTimeTextFieldController
+                                      .getDateTimeResult()!
+                                      .toIso8601String());
+                            },
+                            isSuccessfull: (response) {
+                              return response;
+                            },
+                            getMessage: (response) {
+                              return "";
+                            },
+                            resultCallback:
+                                (request, response, message, state) {
+                              if (state.isSuccess()) {
+                                setState(() {});
+                              }
+                            },
+                          );
                         },
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
