@@ -63,7 +63,7 @@ class _EventListPageState extends State<EventListPage> {
       );
       final result = await stmt.execute([name, dateTime]);
       bool success = false;
-      if (result.affectedRows.toInt() > 0) {
+      if (result.lastInsertID.toInt() > 0) {
         success = true;
       }
       await stmt.deallocate();
@@ -114,7 +114,7 @@ class _EventListPageState extends State<EventListPage> {
 
       final result = await pool.execute(
           "UPDATE countdown_event SET name = :name, date = :date WHERE id = :id",
-          {"name": name, "date": date, "id": id});
+          {"name": name, "date": date, "id": int.parse(id)});
       bool success = false;
       if (result.affectedRows.toInt() > 0) {
         success = true;
@@ -230,7 +230,7 @@ class _EventListPageState extends State<EventListPage> {
                               );
                             },
                             getRequest: (context) {
-                              return {};
+                              return {"name": data["name"]};
                             },
                             actionFunction: (context, request) {
                               return updateEvent(
